@@ -19,7 +19,7 @@ class App extends React.Component {
     return (
       <div className="App">
         {this.state.authToken != null && 
-          <Main />
+          <Main token={this.state.authToken} />
         }
         {this.state.authToken == null &&
           <Login onGetAuthToken={this.handleAuthToken} />

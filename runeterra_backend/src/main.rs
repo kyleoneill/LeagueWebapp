@@ -15,21 +15,39 @@ pub mod schema;
 
 use models::NewUser;
 
+//TODO - the rust backend should serve the react frontend
+
 #[get("/")]
 fn index() -> &'static str {
-    "<p>Hello, world!</>"
+    "Hello, world!"
 }
 
-#[get("/auth?<username>&<hashed_password>")]
-fn hello(username: &RawStr, hashed_password: &RawStr) -> String {
-    println!("Got an auth request from {0} with password {1}", username.as_str(), hashed_password.as_str());
+#[get("/auth?<username>&<password>")]
+fn auth(username: &RawStr, password: &RawStr) -> String {
+    println!("Got an auth request from {0} with password {1}", username.as_str(), password.as_str());
     let connection = establish_connection();
-    create_user(&connection, username, hashed_password);
+    let token = auth_user(&connection, username, password); //TODO CHANGE THIS TO GET TOKEN/SOMETHING
+    if token {
+        format!("Authenticated user {}", username)
+    }
+    else {
+        format!("Failed authentication for user {}", username)
+    }
+}
+
+#[post("/create?<username>&<password>")]
+fn new_user(username: &RawStr, password: &RawStr) -> String {
+    println!("Got a request to create a new user with username {}", username);
+    //TODO: Check to make sure user doesn't exist
+    let connection = establish_connection();
+    //TODO: need to hash the password here - store a salt?
+    //How exactly does salting work?
+    create_user(&connection, username, password);
     format!("Created a new user with username {}", username)
 }
 
 fn main() {
-    rocket::ignite().mount("/", routes![index, hello]).launch();
+    rocket::ignite().mount("/", routes![index, auth, new_user]).launch();
 }
 
 pub fn establish_connection() -> SqliteConnection {
@@ -50,4 +68,22 @@ pub fn create_user(conn: &SqliteConnection, username: &str, hashed_password: &st
         .values(&new_user)
         .execute(conn)
         .expect("Error saving new post")
-} 
+}
+
+pub fn auth_user(conn: &SqliteConnection, auth_usernme: &str, auth_password: &str) -> bool {
+    //let hashed_password = do_something(password);
+    use schema::users::dsl::*;
+    use crate::models::User;
+    let mut authenticated = false;
+    let res = users
+        .filter(username.eq(auth_usernme))
+        .filter(hashed_password.eq(auth_password))
+        .load::<User>(conn)
+        .expect("Error getting user");
+    if res.len() == 1 {
+        authenticated = true;
+    }
+    //TODO: This should return a token or something
+    //Make a new table of tokens that matches to the users ID
+    authenticated
+}

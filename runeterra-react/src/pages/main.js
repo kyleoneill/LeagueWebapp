@@ -9,6 +9,7 @@ class Main extends React.Component {
         return (
           <div className="MainComponent">
             <p>Omg I am authenticated</p>
+            <p>Also my token is - {this.props.token}</p>
           </div>
         );
       }
